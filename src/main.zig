@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 
 comptime {
     export_ubsan_handler("add_overflow");
@@ -69,8 +70,14 @@ fn export_ubsan_handler(comptime name: []const u8) void {
 }
 
 fn dump_stack_trace_and_print_reason(reason: []const u8) noreturn {
-    std.debug.dumpCurrentStackTrace(@returnAddress());
-    std.log.err("{s}", .{reason});
+    if (builtin.target.os.tag != .freestanding) {
+        std.debug.dumpCurrentStackTrace(@returnAddress());
+        std.log.err("{s}", .{reason});
+    }
+
     @breakpoint();
-    std.os.abort();
+    if (builtin.target.os.tag != .freestanding)
+        std.process.abort();
+
+    while (true) {}
 }
